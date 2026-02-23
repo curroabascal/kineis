@@ -1,0 +1,11 @@
+Package: kineis
+Title: Library to automate the download of argos data from Kineis satellites
+Version: 0.0.0.9000
+Authors@R: 
+    person("Curro", "Abascal", , "francisco.abascal@ieo.csic.es", role = c("aut", "cre"))
+Description: The library uses CLS's Telemetry API (documented via OpenAPI/Swagger) to automatically download bulk satellite telemetry data, integrating it into R with httr.
+License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
+    license
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
