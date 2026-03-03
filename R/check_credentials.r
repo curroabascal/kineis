@@ -3,16 +3,8 @@
 #' If not, it will require credentials and ask if you want to save them.
 #' @export
 #' @examples
-#' myaccesstoken=.check_credentials()
+#' myaccesstoken=check_credentials()
 #' myaccesstoken
-get_home <- function() {
-  if (.Platform$OS.type == "windows") {
-    Sys.getenv("USERPROFILE")
-  } else {
-    Sys.getenv("HOME")
-  }
-}
-
 check_credentials <-function() {
   credexist<-file.exists(file.path(normalizePath(get_home()),'kineiscredentials.txt')->kineiscredentialsfile)
   
