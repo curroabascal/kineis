@@ -1,7 +1,7 @@
 #' Function to download data for a platform between a range of dates.
 #' @export
 #' @examples
-#' kineisdata=download_kineis_data(device_refs='267094',from_date="2026-02-01",to_date="2026-02-05")
+#' kineisdata=download_kineis_data(device_refs='267094',from_date="2025-10-15",to_date="2025-10-15")
 #' head(kineisdata)
 download_kineis_data <- function(device_refs, from_date, to_date) {
   # Get token
@@ -43,8 +43,75 @@ download_kineis_data <- function(device_refs, from_date, to_date) {
       stop("API error: ", content(data_resp, "text"))
     }
     
-    data <- fromJSON(content(data_resp, "text"))
-    new_records <- nrow(data$contents)
+    #Huge issue: R sees large numbers as numeric and rounds, and I lose the message ID...
+    content(data_resp, "text")
+    fromJSON(content(data_resp, "text"))$contents$deviceMsgUid
+    fromJSON(content(data_resp, "text", encoding = "UTF-8"))$contents$deviceMsgUid
+    
+    # #FIX
+    # # Step 1: Get raw JSON text
+    # raw_json <- content(data_resp, "text", encoding = "UTF-8")
+    # 
+    # # Step 2: Convert all numeric IDs to quoted strings in JSON
+    # # This keeps large numbers as character
+    # raw_json_char <- gsub(
+    #   '(\"deviceMsgUid\":)([0-9]+)',
+    #   '\\1"\\2"',
+    #   raw_json
+    # )
+    # 
+    # # Step 3: Parse JSON normally
+    # raw_page <- fromJSON(raw_json_char, simplifyVector = FALSE)
+    # 
+    # # Step 4: Convert each record to data frame, all character
+    # page_df <- bind_rows(lapply(raw_page$contents, function(x) {
+    #   x <- lapply(x, as.character)  # convert all fields to character
+    #   as.data.frame(x, stringsAsFactors = FALSE)
+    # }))
+    
+    #FIX2
+    # library(jsonlite)
+    # library(dplyr)
+    
+    raw_json <- content(data_resp, "text", encoding = "UTF-8")
+    
+    # Convert deviceMsgUid and providerMsgId to strings in JSON
+    raw_json_char <- gsub(
+      '(\"deviceMsgUid\":)([0-9]+)',
+      '\\1"\\2"',
+      raw_json
+    )
+    raw_json_char <- gsub(
+      '(\"providerMsgId\":)([0-9]+)',
+      '\\1"\\2"',
+      raw_json_char
+    )
+    
+    # Parse JSON normally
+    raw_page <- fromJSON(raw_json_char, simplifyVector = FALSE)
+    
+    # Flatten and convert all fields to character recursively
+    flatten_message <- function(x, parent = NULL) {
+      out <- list()
+      for (nm in names(x)) {
+        el <- x[[nm]]
+        colname <- if (is.null(parent)) nm else paste(parent, nm, sep = ".")
+        
+        if (is.list(el)) {
+          out <- c(out, flatten_message(el, parent = colname))
+        } else {
+          out[[colname]] <- as.character(el)
+        }
+      }
+      out
+    }
+    
+    page_df <- bind_rows(lapply(raw_page$contents, function(x) {
+      as.data.frame(flatten_message(x), stringsAsFactors = FALSE)
+    }))
+    
+  
+    new_records <- nrow(page_df)
     total_records <- total_records + new_records
     
     cat("Page: Downloaded", new_records, "records (Total:", total_records, ")\n")
@@ -52,10 +119,10 @@ download_kineis_data <- function(device_refs, from_date, to_date) {
     # Add new records
     # all_data=list()
     # length(all_data)
-    all_data <- c(all_data, list(data$contents))
+    all_data <- rbind(all_data, page_df)
     # length(all_data)
     # Check if more pages
-    page_info <- data$pageInfo
+    page_info <- raw_data$pageInfo
     if (!page_info$hasNextPage || is.null(page_info$endCursor)) {
       cat("✓ Complete! Total records:", total_records, "\n")
       break
@@ -66,6 +133,6 @@ download_kineis_data <- function(device_refs, from_date, to_date) {
     cat("Next cursor:", substr(after_cursor, 1, 20), "...\n")
     Sys.sleep(0.5)  # Rate limiting
   }
-  all_data <- bind_rows(all_data)
+  # all_data <- bind_rows(all_data)
   return(all_data)
 }

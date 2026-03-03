@@ -27,11 +27,11 @@ change_format<-function(data){
                      Doppler_device_Frequency=data$dopplerDeviceFrequency,
                      Doppler_Class=data$dopplerLocClass,
                      Doppler_Nb._Msg=data$dopplerNbMsg,
-                     Satellite=data$kineisMetadata.sat,
-                     Modulation=data$kineisMetadata.mod,
-                     Signal_Level=data$kineisMetadata.level,
-                     SNR=data$kineisMetadata.snr ,
-                     Frequency=data$kineisMetadata.freq,
+                     Satellite=data$kineisMetadata$sat,
+                     Modulation=data$kineisMetadata$mod,
+                     Signal_Level=data$kineisMetadata$level,
+                     SNR=data$kineisMetadata$snr ,
+                     Frequency=data$kineisMetadata$freq,
                      Message_UID=data$deviceMsgUid,check.names = F
   )
   names(newdata)=gsub('_',' ',names(newdata))
@@ -39,18 +39,18 @@ change_format<-function(data){
   newdata$`Doppler Date (UTC)`=as.POSIXct(newdata$`Doppler Date (UTC)`,tz='',format='%Y-%m-%dT%H:%M:%S')
   newdata=newdata[order(newdata$`Message date (UTC)`,decreasing = T),]
   
-  # library(dplyr)
-  # #Conversions to numeric whenever possible
-  # force_numeric <- function(df) {
-  #   df[] <- lapply(df, function(x) {
-  #     num_attempt <- suppressWarnings(as.numeric(as.character(x)))
-  #     if(all(!is.na(num_attempt))) return(num_attempt)
-  #     else return(x)  # Keep original if conversion fails
-  #   })
-  #   return(df)
-  # }
+  library(dplyr)
+  #Conversions to numeric whenever possible
+  force_numeric <- function(df) {
+    df[] <- lapply(df, function(x) {
+      num_attempt <- suppressWarnings(as.numeric(as.character(x)))
+      if(all(!is.na(num_attempt))) return(num_attempt)
+      else return(x)  # Keep original if conversion fails
+    })
+    return(df)
+  }
   
-  # newdata <- force_numeric(newdata)
+  newdata <- force_numeric(newdata)
   #Corregir formato de sensores:
   convert_sensor_format <- function(input) {
     # Paso 1: Reemplazar patrón completo para limpiar
@@ -66,31 +66,12 @@ change_format<-function(data){
     return(cleaned)
   }
   
-  toEnotation<-function(x){
-    #step 0. E notation
-    x0 <- sprintf("%.11E", as.numeric(x))
-    # Step 1: Fix exponent (E+010 -> E10)
-    x1 <- gsub("E[+]0*([0-9]+)", "E\\1", x0)
-    # Step 2: Remove trailing zeros after decimal (works without lookahead)
-    x2<-gsub("(\\.[0-9]+?)0+(?=E|$)", "\\1", x1, perl = TRUE)
-    return(x2)
-  }
   newdata$Sensors=convert_sensor_format(newdata$Sensors)
-  # newdata$Frequency=gsub("E[+]0*","E", sprintf("%.11E", newdata$Frequency))
-  # newdata$`Doppler device Frequency`=gsub("E[+]0*","E", sprintf("%.11E", newdata$`Doppler device Frequency`))
-  newdata$`Doppler device Frequency`=toEnotation(newdata$`Doppler device Frequency`)
-  newdata$Frequency=toEnotation(newdata$Frequency)
-
-  newdata$`Doppler Altitude`=sprintf("%.1f", as.numeric(newdata$`Doppler Altitude`))
-  newdata$`Doppler Error radius` =sprintf("%.1f", as.numeric(newdata$`Doppler Error radius`))
-  # newdata$`Signal Level` =sprintf("%.1f", as.numeric(newdata$`Signal Level`))  
-  newdata$SNR =sprintf("%.1f", as.numeric(newdata$SNR)  )
-  
-  for (col in names(newdata)) {
-    if (is.character(newdata[[col]])) {
-      newdata[[col]][newdata[[col]] == "NA"] <- ""
-    }
-  }
-  newdata=newdata[!duplicated(newdata$`Message UID`),]
+  newdata$Frequency=gsub("E[+]0*","E", sprintf("%.11E", newdata$Frequency))
+  newdata$`Doppler device Frequency`=gsub("E[+]0*","E", sprintf("%.11E", newdata$`Doppler device Frequency`))
+  newdata$`Doppler Altitude`=sprintf("%.1f", newdata$`Doppler Altitude`)
+  newdata$`Doppler Error radius` =sprintf("%.1f", newdata$`Doppler Error radius`)
+  newdata$`Signal Level` =sprintf("%.1f", newdata$`Signal Level`)  
+  newdata$SNR =sprintf("%.1f", newdata$SNR)  
   return(newdata)
 }
