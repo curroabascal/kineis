@@ -44,9 +44,9 @@ download_kineis_data <- function(device_refs, from_date, to_date) {
     }
     
     #Huge issue: R sees large numbers as numeric and rounds, and I lose the message ID...
-    content(data_resp, "text")
-    fromJSON(content(data_resp, "text"))$contents$deviceMsgUid
-    fromJSON(content(data_resp, "text", encoding = "UTF-8"))$contents$deviceMsgUid
+    # content(data_resp, "text")
+    # fromJSON(content(data_resp, "text"))$contents$deviceMsgUid
+    # fromJSON(content(data_resp, "text", encoding = "UTF-8"))$contents$deviceMsgUid
     
     # #FIX
     # # Step 1: Get raw JSON text
@@ -122,7 +122,7 @@ download_kineis_data <- function(device_refs, from_date, to_date) {
     all_data <- rbind(all_data, page_df)
     # length(all_data)
     # Check if more pages
-    page_info <- raw_data$pageInfo
+    page_info <- raw_page$pageInfo
     if (!page_info$hasNextPage || is.null(page_info$endCursor)) {
       cat("✓ Complete! Total records:", total_records, "\n")
       break
